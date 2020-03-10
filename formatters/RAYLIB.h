@@ -44,8 +44,10 @@ static int imgpack_formatter_RAYLIB(struct ImgPackContext *ctx, FILE *f) {
 
 	fprintf(f, "%s_DEF void %s_Load(void);\n", name, name);
 	fprintf(f, "%s_DEF void %s_Unload(void);\n", name, name);
+	fprintf(f, "%s_DEF void %s_DrawNP(enum %s_Id id, float x, float y, Color color, int anchor);\n", name, name, name);
 	fprintf(f, "%s_DEF int %s_Draw(enum %s_Id id, float x, float y, Color color, int anchor, const Vector2 *point);\n", name, name, name);
 	fprintf(f, "%s_DEF int %s_DrawEx(enum %s_Id id, float x, float y, float rotation, float scale, Color color, int anchor, const Vector2 *point);\n", name, name, name);
+	fprintf(f, "%s_DEF void %s_DrawExNP(enum %s_Id id, float x, float y, float rotation, float scale, Color color, int anchor);\n", name, name, name);
 	fprintf(f, "%s_DEF Texture %s_GetTexture(void);\n", name, name);
 	fprintf(f, "%s_DEF const Vector2 %s_GetScale(void);\n", name, name);
 	fprintf(f, "%s_DEF const Rectangle %s_GetFrame(enum %s_Id id);\n", name, name, name);
@@ -98,6 +100,15 @@ static int imgpack_formatter_RAYLIB(struct ImgPackContext *ctx, FILE *f) {
 	fprintf(f, "  %s_Texture = (Texture) {0};\n", name);
 	fprintf(f, "}\n\n");
 
+	fprintf(f, "void %s_DrawNP(enum %s_Id id, float x, float y, Color color, int anchor) {\n", name, name);
+	fprintf(f, "  if (id) {\n");
+	fprintf(f, "    x += (anchor & 1 ? 0 : anchor & 2 ? -%s_SourceSize[id].x : -%s_Origin[id].x - %s_Offset[id].x);\n", name, name, name);
+	fprintf(f, "    y += (anchor & 4 ? 0 : anchor & 8 ? -%s_SourceSize[id].y : -%s_Origin[id].y - %s_Offset[id].y);\n", name, name, name);
+	fprintf(f, "    Rectangle destRec = {x + %s_Offset[id].x, y + %s_Offset[id].y, %s_Frame[id].width, %s_Frame[id].height};\n", name, name, name, name);
+	fprintf(f, "    DrawTexturePro(%s_Texture, %s_Frame[id], destRec, (Vector2){0,0}, 0, color);\n", name, name);
+	fprintf(f, "  }\n");
+	fprintf(f, "}\n\n");
+
 	fprintf(f, "int %s_Draw(enum %s_Id id, float x, float y, Color color, int anchor, const Vector2 *point) {\n", name, name);
 	fprintf(f, "  if (id) {\n");
 	fprintf(f, "    x += (anchor & 1 ? 0 : anchor & 2 ? -%s_SourceSize[id].x : -%s_Origin[id].x - %s_Offset[id].x);\n", name, name, name);
@@ -128,6 +139,18 @@ static int imgpack_formatter_RAYLIB(struct ImgPackContext *ctx, FILE *f) {
 	fprintf(f, "    }\n");
 	fprintf(f, "  }\n");
 	fprintf(f, "  return 0;\n");
+	fprintf(f, "}\n\n");
+
+	fprintf(f, "void %s_DrawExNP(enum %s_Id id, float x, float y, float rotation, float scale, Color color, int anchor) {\n", name, name);
+	fprintf(f, "  if (id) {\n");
+	fprintf(f, "    Rectangle sourceRec = %s_Frame[id];\n", name);
+	fprintf(f, "    Vector2 origin = %s_Origin[id];\n", name);
+	fprintf(f, "    if (anchor & 1) origin.x = 0; else if (anchor & 2) origin.x = %s_SourceSize[id].x;\n", name);
+	fprintf(f, "    if (anchor & 4) origin.y = 0; else if (anchor & 8) origin.y = %s_SourceSize[id].y;\n", name);
+	fprintf(f, "    origin.x *= scale; origin.y *= scale;\n");
+	fprintf(f, "    Rectangle destRec = {x, y, sourceRec.width * scale, sourceRec.height * scale};\n");
+	fprintf(f, "    DrawTexturePro(%s_Texture, %s_Frame[id], destRec, origin, rotation, color);\n", name, name);
+	fprintf(f, "  }\n");
 	fprintf(f, "}\n\n");
 
 	fprintf(f, "Texture %s_GetTexture(void) {\n  return %s_Texture;\n}\n\n", name, name);
